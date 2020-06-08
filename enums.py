@@ -6,7 +6,7 @@ class Axis(Enum):
     Z = "z"
     B = "b"
     C = "c"
-    Plus = "++"
+    Plus = "+"
     Minus = "-"
 
 class Tool_Ids(Enum):
