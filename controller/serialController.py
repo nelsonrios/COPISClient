@@ -1,9 +1,11 @@
 import serial
 from serial.tools import list_ports
+from util import set_dialog
 
 class SerialController(object):
-    def __init__(self):
+    def __init__(self, parent):
         super(SerialController, self).__init__()
+        self.console = parent.GetPane("Console").window
         self.selected_serial = None
         self.ports = self.getPorts()
         self.bauds = []
@@ -25,3 +27,10 @@ class SerialController(object):
         self.selected_serial.close()
         self.bauds = self.getBaudRates()
 
+    def sendCommand(self, cmd):
+        if self.selected_serial:
+            self.selected_serial.write(cmd + '\n')
+            response = self.selected_serial.readlines()
+            self.console.print(response)
+        else:
+            set_dialog("Please connect to port to send commands.")

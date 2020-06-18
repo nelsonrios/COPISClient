@@ -1,11 +1,13 @@
 import wx
 from enums import Axis
 import time
+from gcodeProcessor import GcodeProcessor
 
 class CommandPanel(wx.Panel):
     def __init__(self, parent, *args, **kwargs):
         super(CommandPanel, self).__init__(parent)
         self.parent = parent
+        self.gcode_processor = GcodeProcessor()
         self.init_ui()
 
     def init_ui(self):
