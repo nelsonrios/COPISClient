@@ -3,7 +3,7 @@ from enums import Axis
 import time
 
 class CommandPanel(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent, *args, **kwargs):
         super(CommandPanel, self).__init__(parent)
         self.parent = parent
         self.init_ui()
@@ -62,25 +62,25 @@ class CommandPanel(wx.Panel):
 
     def OnMoveCommand(self, event):
         selected = self.cmd.GetStringSelection()
-        
+
         if selected != "":
             direction = event.GetEventObject().direction
             index = self.cmd.GetSelection()
             self.cmd.Delete(index)
-            
+
             if direction == "up":
                 index -= 1
             else:
                 index += 1
 
             self.cmd.InsertItems([selected], index)
-            
+
     def OnReplaceCommand(self, event):
         selected = self.cmd.GetSelection()
 
         if selected != -1:
             replacement = self.cmdWriter.GetValue()
-            
+
             if replacement != "":
                 self.cmd.SetString(selected, replacement)
                 self.cmdWriter.SetValue("")
