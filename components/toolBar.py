@@ -4,19 +4,20 @@
 import wx
 from enums import Tool_Ids
 from frames.settingsFrame import SettingsFrame
-from controller.serialController import SerialController
 
 
 class ToolBarPanel(wx.Panel):
     def __init__(self, parent):
         super(ToolBarPanel, self).__init__(parent, style = wx.BORDER_SUNKEN)
+        self.parent = parent
+
         hbox = wx.BoxSizer()
         self.toolbar = wx.ToolBar(self, -1, style = wx.TB_HORIZONTAL | wx.NO_BORDER)
         hbox.Add(self.toolbar, 1, flag=wx.EXPAND)
 
         # port and baud
         self.initPortBaudOptions()
-        self.controller = SerialController()
+        self.serial_controller = self.parent.serial_controller
         self.setPorts()
         self.setBaudRates()
         self.toolbar.AddStretchableSpace()
@@ -89,26 +90,26 @@ class ToolBarPanel(wx.Panel):
 
     def setPorts(self):
         self.toolbar.portCombo.Clear()
-        for port in self.controller.ports:
+        for port in self.serial_controller.ports:
             self.toolbar.portCombo.Append(port)
 
     def setBaudRates(self):
-        if self.controller.bauds:
+        if self.serial_controller.bauds:
             self.baudCombo.Clear()
-            for baud in self.controller.bauds:
+            for baud in self.serial_controller.bauds:
                 self.baudCombo.Append(str(baud))
 
     def onSelectPort(self, event):
-        self.controller.setCurrentSerial(self.portCombo.GetStringSelection())
+        self.serial_controller.setCurrentSerial(self.portCombo.GetStringSelection())
         self.setBaudRates()
 
     def onSelectBaud(self, event):
-        self.controller.selected_serial.baudrate = int(self.baudCombo.GetStringSelection())
+        self.serial_controller.selected_serial.baudrate = int(self.baudCombo.GetStringSelection())
 
     def onConnect(self, event):
-        if self.controller.selected_serial.is_open:
-            self.controller.selected_serial.close()
+        if self.serial_controller.selected_serial.is_open:
+            self.serial_controller.selected_serial.close()
             self.connectBtn.SetLabel('Connect')
         else:
-            self.controller.selected_serial.open()
+            self.serial_controller.selected_serial.open()
             self.connectBtn.SetLabel('Disconnect')

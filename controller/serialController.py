@@ -5,7 +5,7 @@ from util import set_dialog
 class SerialController(object):
     def __init__(self, parent):
         super(SerialController, self).__init__()
-        self.console = parent.GetPane("Console").window
+        self.parent = parent
         self.selected_serial = None
         self.ports = self.getPorts()
         self.bauds = []

@@ -1,13 +1,12 @@
 import wx
 from enums import Axis
 import time
-from gcodeProcessor import GcodeProcessor
 
 class CommandPanel(wx.Panel):
     def __init__(self, parent, *args, **kwargs):
         super(CommandPanel, self).__init__(parent)
         self.parent = parent
-        self.gcode_processor = GcodeProcessor()
+        self.gcode_processor = self.parent.gcode_processor
         self.init_ui()
 
     def init_ui(self):
@@ -48,8 +47,10 @@ class CommandPanel(wx.Panel):
         self.saveToFileBtn = wx.Button(self, wx.ID_ANY, label = 'Save To File')
         vboxBtns.Add(self.saveToFileBtn)
         self.sendAllBtn = wx.Button(self, wx.ID_ANY, label = 'Send All')
+        self.sendAllBtn.Bind(wx.EVT_BUTTON, self.OnSendAll)
         vboxBtns.Add(self.sendAllBtn)
         self.sendSelBtn = wx.Button(self, wx.ID_ANY, label = 'Send Sel')
+        self.sendSelBtn.Bind(wx.EVT_BUTTON, self.OnSendSelected)
         vboxBtns.Add(self.sendSelBtn)
         hboxBottom.Add(vboxBtns)
 
@@ -102,27 +103,18 @@ class CommandPanel(wx.Panel):
         else:
             self.cmd.Clear()
 
-    def TranslateGcode(self, command):
+    def OnSendSelected(self, event):
+        selected = self.cmd.GetSelections()
+        for i in selected:
+            cmd = self.cmd.GetString(i)
+            self.OnSendCommand(cmd)
+
+    def OnSendAll(self, event):
+        length = self.cmd.GetCount()
+        for i in range(length):
+            cmd = self.cmd.GetString(i)
+            self.OnSendCommand(cmd)
+
+    def OnSendCommand(self, command):
         self.parent.console_panel.print("Start processing command: " + command)
-        if command[0] != "G":
-            raise ValueError
-
-        # G[code] C[cam_id] X[mm] Y[mm] Z[mm] T[dd] P[dd]
-        command_ls = command.split()
-        cam_id = 0
-        starting_i = 1
-
-        if "C" in each:
-            cam_id = int(command_ls[1][1:])
-            starting_i = 2
-
-        cam = self.parent.visualizer_panel.getCamById(cam_id)
-
-        if command_ls[0] == "G0":
-            for i in range(starting_i, len(command_ls)):
-                cam.onMove(Axis(command_ls[i][0].lower()), float(command_ls[i][1:]))
-                self.parent.console_panel.print()
-
-        if command_ls[0] == "G4":
-            time.sleep(float(command_ls[1][1:]))
-            return "DONE"
+        self.gcode_processor.processCommand(command)

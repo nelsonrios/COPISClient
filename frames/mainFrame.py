@@ -4,6 +4,8 @@ from controller.auiManager import AuiManager
 from components.toolBar import ToolBarPanel
 from components.menuBar import MenuBar
 from components.statusBar import StatusBar
+from controller.serialController import SerialController
+from controller.gcodeProcessor import GcodeProcessor
 
 class MyPopupMenu(wx.Menu):
     def __init__(self, parent, *args, **kwargs):
@@ -41,6 +43,10 @@ class MainFrame(wx.Frame):
 
         ## initialize status bar
         self.SetStatusBar(StatusBar(self))
+
+        ## initialize serial port controller
+        self.serial_controller = SerialController(self)
+        self.gcode_processor = GcodeProcessor(self)
 
         ## initialize advanced user interface manager and panes
         self.auiManager = AuiManager(self)
