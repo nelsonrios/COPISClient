@@ -1,0 +1,16 @@
+Gcode for COPIS
+
+Code	Description							Syntax
+G0		Rapid Linear Move					G0	[C<cam>]	[X<pos>]	[Y<pos>]	[Z<pos>]	[P<angle>]	[T<angle>]
+G1		Linear Move at Defined Feedrate		G1	[C<cam>]	[F<rate>]	[X<pos>]	[Y<pos>]	[Z<pos>]	[P<angle>]	[T<angle>]
+G2		Clockwise Arc Movement				G2	[C<cam>]	[X<pos>]	[Y<pos>]	[Z<pos>]	[P<rate>]	I<offset>	J<offset>
+																											R<radius>
+G3		Counter-clockwise Arc Movement		G3	[C<cam>]	[X<pos>]	[Y<pos>]	[Z<pos>]	[P<rate>]	I<offset>	J<offset>
+																											R<radius>
+G4		Dwell								G4	[C<cam>]	[P<ms>]		[S<sec>]
+G20		Inch Units							G20
+G21		Millimeter Units					G21
+G33		Delta Auto Calibration
+G90		Absolute Positioning				G90
+G91		Relative Positioning				G91
+G92		Set Camera							G92	C<cam>
