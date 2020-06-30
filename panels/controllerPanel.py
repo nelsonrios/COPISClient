@@ -1,5 +1,5 @@
 import wx
-from enums import Axis
+from enums import Axis, Focus
 from Canon.EDSDKLib import *
 import util
 
@@ -249,12 +249,6 @@ class ControllerPanel(wx.Panel):
         vbox1.Add(self.ptpRb, flag = wx.LEFT | wx.TOP, border = 10)
         self.ptpRb.Disable()
 
-        hboxF = wx.BoxSizer()
-        self.frBtn = wx.Button(self, wx.ID_ANY, label = 'F-')
-        hboxF.Add(self.frBtn)
-        self.fiBtn = wx.Button(self, wx.ID_ANY, label = 'F+')
-        hboxF.Add(self.fiBtn)
-        vbox1.Add(hboxF, 1, flag = wx.TOP, border = 15)
         hbox.Add(vbox1, 1, flag = wx.LEFT, border = 30)
 
         vbox2 = wx.BoxSizer(wx.VERTICAL)
@@ -267,6 +261,35 @@ class ControllerPanel(wx.Panel):
         self.startEvfBtn.Bind(wx.EVT_BUTTON, self.onStartEvf)
         hbox.Add(vbox2, 1, flag = wx.LEFT, border = 10)
         vbox.Add(hbox, 1, flag = wx.LEFT)
+
+        vboxF = wx.BoxSizer(wx.VERTICAL)
+        font = wx.SystemSettings.GetFont(wx.SYS_SYSTEM_FONT)
+        font.SetPointSize(10)
+        focusLabel = wx.StaticText(self, wx.ID_ANY, label = 'Focus', style = wx.ALIGN_LEFT)
+        focusLabel.SetFont(font)
+        vboxF.Add(focusLabel, 0.5)
+
+        hboxF = wx.BoxSizer()
+        self.frrrBtn = wx.Button(self, wx.ID_ANY, label='<<<')
+        hboxF.Add(self.frrrBtn)
+        self.frrrBtn.Bind(wx.EVT_BUTTON, self.onFocusControl)
+        self.frrBtn = wx.Button(self, wx.ID_ANY, label='<<')
+        hboxF.Add(self.frrBtn)
+        self.frrBtn.Bind(wx.EVT_BUTTON, self.onFocusControl)
+        self.frBtn = wx.Button(self, wx.ID_ANY, label = '<')
+        hboxF.Add(self.frBtn)
+        self.frBtn.Bind(wx.EVT_BUTTON, self.onFocusControl)
+        self.fiBtn = wx.Button(self, wx.ID_ANY, label = '>')
+        hboxF.Add(self.fiBtn)
+        self.fiBtn.Bind(wx.EVT_BUTTON, self.onFocusControl)
+        self.fiiBtn = wx.Button(self, wx.ID_ANY, label = '>>')
+        hboxF.Add(self.fiiBtn)
+        self.fiiBtn.Bind(wx.EVT_BUTTON, self.onFocusControl)
+        self.fiiiBtn = wx.Button(self, wx.ID_ANY, label = '>>>')
+        hboxF.Add(self.fiiiBtn)
+        self.fiiiBtn.Bind(wx.EVT_BUTTON, self.onFocusControl)
+        vboxF.Add(hboxF, 1, flag=wx.LEFT, border=10)
+        vbox.Add(vboxF, 1, flag=wx.TOP|wx.LEFT, border=10)
 
         return vbox
 
@@ -374,3 +397,24 @@ class ControllerPanel(wx.Panel):
     def onCreateVirtualCam(self, event):
         cam = self.parent.visualizer_panel.onDrawCamera()
         self.parent.controller_panel.masterCombo.Append("camera " + str(cam.id))
+
+    def onFocusControl(self, event):
+        camId = self.masterCombo.GetSelection()
+        if self.parent.cam_list.selected_camera is not None:
+            mode = event.GetEventObject().GetLabel()
+            if mode == '<<<':
+                mode = Focus.Near3
+            elif mode == '<<':
+                mode = Focus.Near2
+            elif mode == '<':
+                mode = Focus.Near1
+            elif mode == '>':
+                mode = Focus.Far1
+            elif mode == '>>':
+                mode = Focus.Far2
+            elif mode == '>>>':
+                mode = Focus.Far3
+
+            self.parent.cam_list.selected_camera.focus(mode)
+        else:
+            util.set_dialog("Please select the camera to take a picture.")

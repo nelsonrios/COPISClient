@@ -3,6 +3,7 @@ import time
 from ctypes import *
 import util
 import wx
+from enums import Focus
 
 _edsdk = None
 _console = None
@@ -180,6 +181,23 @@ class Camera:
             _edsdk.EdsSendCommand(self.camref, 0, 0)
         except Exception as e:
             _console.print("An exception occurred while taking a photo with camera" + str(self.id + 1) + ": " + e.args[0])
+
+    def focus(self, mode):
+        param = 0
+        if mode == Focus.Far1:
+            param = _edsdk.EvfDriveLens_Far1
+        elif mode == Focus.Far2:
+            param = _edsdk.EvfDriveLens_Far2
+        elif mode == Focus.Far3:
+            param = _edsdk.EvfDriveLens_Far3
+        elif mode == Focus.Near1:
+            param = _edsdk.EvfDriveLens_Near1
+        elif mode == Focus.Near2:
+            param = _edsdk.EvfDriveLens_Near2
+        elif mode == Focus.Near3:
+            param = _edsdk.EvfDriveLens_Near3
+
+        _edsdk.EdsSendCommand(self.camref, _edsdk.CameraCommand_DriveLensEvf, param)
 
     def startEvf(self):
         if not self.is_evf_on:

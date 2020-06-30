@@ -14,3 +14,11 @@ class Tool_Ids(Enum):
     Pause = 2
     Stop = 3
     Settings = 4
+
+class Focus(Enum):
+    Near1 = 1
+    Near2 = 2
+    Near3 = 3
+    Far1 = 4
+    Far2 = 5
+    Far3 = 6
