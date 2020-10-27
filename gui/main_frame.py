@@ -8,6 +8,7 @@ import wx
 import wx.lib.agw.aui as aui
 import wx.svg as svg
 from pydispatch import dispatcher
+from utils import Point3, Point5
 from wx.lib.agw.aui.aui_constants import *
 from wx.lib.agw.aui.aui_utilities import (ChopText, GetBaseColour,
                                           IndentPressedBitmap, StepColour,
@@ -25,7 +26,6 @@ from gui.panels.visualizer import VisualizerPanel
 from gui.pathgen_frame import *
 from gui.pref_frame import *
 from gui.wxutils import create_scaled_bitmap, set_dialog
-from utils import Point3, Point5
 
 
 class MainFrame(wx.Frame):
@@ -72,6 +72,9 @@ class MainFrame(wx.Frame):
 
         # initialize aui manager
         self.init_mgr()
+
+        # TEST edsdk
+        self.init_edsdk()
 
         self.Centre()
 
@@ -189,7 +192,7 @@ class MainFrame(wx.Frame):
         # Window menu
         window_menu = wx.Menu()
         self.menuitems['evf'] = window_menu.Append(wx.ID_ANY, 'Camera EVF', 'Show/hide camera EVF window', wx.ITEM_CHECK)
-        self.menuitems['evf'].Enable(False)
+        # self.menuitems['evf'].Enable(False)
         self.Bind(wx.EVT_MENU, self.update_evf_panel, self.menuitems['evf'])
         self.menuitems['console'] = window_menu.Append(wx.ID_ANY, 'Console', 'Show/hide console window', wx.ITEM_CHECK)
         self.menuitems['console'].Check(True)
@@ -381,6 +384,7 @@ class MainFrame(wx.Frame):
         self.panels['properties'] = PropertiesPanel(self)
         self.panels['path'] = PathPanel(self)
         self.panels['toolbar'] = ToolbarPanel(self)
+        self.panels['evf'] = EvfPanel(self)
 
         # add visualizer panel
         self._mgr.AddPane(
@@ -556,14 +560,14 @@ class MainFrame(wx.Frame):
         import util.edsdk_object
 
         self.edsdk_object = util.edsdk_object
-        self.edsdk_object.initialize(self.console_panel)
+        self.edsdk_object.initialize(self.panels['console'])
         self.is_edsdk_on = True
         self.get_camera_list()
 
 
-    def get_edsdk_camera_list(self) -> Any:
+    def get_camera_list(self) -> Any:
         """TODO: improve"""
-        return self.edsdk_object.CameraList()
+        # return self.edsdk_object.CameraList()
         self.cam_list = self.edsdk_object.CameraList()
         cam_count = self.cam_list.get_count()
 
@@ -577,14 +581,16 @@ class MainFrame(wx.Frame):
             message += ' cameras are '
         message += 'connected.'
 
-        self.console_panel.print(message)
+        self.panels['console'].print(message)
 
-        for i in range(cam_count):
-            cam_id = self.visualizer_panel.add_camera(id_=i)
-            self.controller_panel.main_combo.Append('camera ' + cam_id)
+        # for i in range(cam_count):
+        #     cam_id = self.visualizer_panel.add_camera(id_=i)
+        #     self.controller_panel.main_combo.Append('camera ' + cam_id)
 
     def get_selected_camera(self) -> Optional[Any]:
         """TODO: improve"""
+        # self.cam_list = self.edsdk_object.CameraList()
+        # print(cam_list)
         if self.selected_cam:
             return self.selected_cam
         return None
