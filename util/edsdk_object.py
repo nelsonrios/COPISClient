@@ -38,7 +38,7 @@ def initialize(console):
         _edsdk = EDSDK()
         _edsdk.EdsInitializeSDK()
     except Exception as e:
-        _console.print('An exception occurred while initializing Canon API: ' + e.args[0])
+        _console.print('An exception occurred while initializing Canon API: ' + str(e.args[0]))
 
 
 ##############################################################################
@@ -257,11 +257,11 @@ class CameraList:
 
     def __init__(self):
         self.list = c_void_p(None)
-
+        self.cam_model_list = []
+        self.selected_camera = None
+        self.count = None
         try:
             self.list = _edsdk.EdsGetCameraList()
-            self.cam_model_list = []
-            self.selected_camera = None
             self.count = _edsdk.EdsGetChildCount(self.list)
 
             if self.count != 0:
