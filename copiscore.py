@@ -40,6 +40,7 @@ from queue import Empty as QueueEmpty
 from queue import Queue
 from typing import Any, List, Optional, Tuple
 
+import pickle
 import glm
 from pydispatch import dispatcher
 
@@ -122,6 +123,14 @@ class Action:
     argc: int = 0
     args: Optional[List[Any]] = None
 
+@dataclass
+class Proxy:
+    proxy_type: int = 0
+    proxy_name: str = ''
+    position: Optional[List[Any]] = None
+    length: int = 10
+    height: int = 10
+
 
 class COPISCore:
     """COPISCore. Connects and interacts with devices in system.
@@ -143,7 +152,7 @@ class COPISCore:
         core_error: Any copiscore access errors.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, cam_number, cam_coords, *args, **kwargs) -> None:
         """Inits a CopisCore instance."""
         self._baud = None
         self._port = None
@@ -172,11 +181,15 @@ class COPISCore:
         self._edsdk_enabled = False
         self.evf_thread = None
         self.camera_list = []
+        self.cam_coords = cam_coords
+        self.cam_number = cam_number
 
         self._actionqueue = Queue(0)
+        self._proxies: List[Proxy] = []
         self._actions: List[Action] = []
         self._devices: List[Device] = MonitoredList([], 'core_d_list_changed')
-        self._update_test()
+
+        self._initialize_devices()
 
         self._selected_points: List[int] = []
         self._selected_device: Optional[int] = -1
@@ -329,23 +342,35 @@ class COPISCore:
     # Action and device data methods
     # --------------------------------------------------------------------------
 
-    def _update_test(self) -> None:
-        """Populates action list manually as a test.
+    def _initialize_devices(self) -> None:
+        for i in range(0, self.cam_number):
+            self._devices.extend([
+                Device(i, 'Camera ' + str(i), 'Canon EOS 80D', ['RemoteShutter'], Point5(self.cam_coords[0][i], self.cam_coords[1][i], self.cam_coords[1][i])),
+            ])
 
-        TODO: Get rid of this when auto path generation is implemented.
+    def _create_sphere(self, radius, ncircle, pcircle, num_cams) -> None:
+        """Populates action list with a spherical path to specification
         """
-        # heights = (-90, -60, -30, 0, 30, 60, 90)
-        heights = (-80, -60, -40, -20, 0, 20, 40, 60, 80)
-        radius = 180
-        every = 40
+        jump = 2 * radius / ncircle
+        heights = []
+        level = -radius
+        for i in range(1, ncircle + 1):
+            heights.append(level)
+            level += jump
+        
+        num_bottom = int(num_cams // 2)
+        num_top = int(-(num_cams // -2))
 
         # generate a sphere (for testing)
+        # For each of the nine levels
         for i in heights:
+            # Compute radius, number of cameras
             r = math.sqrt(radius * radius - i * i)
-            num = int(2 * math.pi * r / every)
-            path, count = get_circle(glm.vec3(0, i, 0), glm.vec3(0, 1, 0), r, num)
+            # Get path containing x,y,z and count for num of cams
+            path, count = get_circle(glm.vec3(0, i, 0), glm.vec3(0, 1, 0), r, pcircle)
 
             for j in range(count - 1):
+                # Put x,y,z,pan,tilt for camera in point5
                 point5 = [
                     path[j * 3],
                     path[j * 3 + 1],
@@ -355,24 +380,77 @@ class COPISCore:
 
                 # temporary hack to divvy ids
                 rand_device = 0
-                if path[j * 3 + 1] < 0:
-                    rand_device += 3
-                if path[j * 3] > 60:
-                    rand_device += 2
-                elif path[j * 3] > -60:
-                    rand_device += 1
+                # Is it above or below 0?
+                if path[j * 3 + 1] > 0:
+                    rand_device += num_bottom
+                # Where is its x coord?
+                for i in range(1, num_top):
+                    if (path[j * 3] > (-radius + i*((radius*2)/num_top))):
+                        rand_device += 1
 
                 self._actions.append(Action(ActionType.G0, rand_device, 5, point5))
                 self._actions.append(Action(ActionType.C0, rand_device))
 
-        self._devices.extend([
-            Device(0, 'Camera A', 'Canon EOS 80D', ['RemoteShutter'], Point5(100, 100, 100)),
-            Device(1, 'Camera B', 'Nikon Z50', ['RemoteShutter', 'PC'], Point5(100, 23.222, 100)),
-            Device(2, 'Camera C', 'RED Digital Cinema \n710 DSMC2 DRAGON-X', ['USBHost-PTP'], Point5(-100, 100, 100)),
-            Device(3, 'Camera D', 'Phase One XF IQ4', ['PC', 'PC-External'], Point5(100, -100, 100)),
-            Device(4, 'Camera E', 'Hasselblad H6D-400c MS', ['PC-EDSDK', 'PC-PHP'], Point5(100, 100, -100)),
-            Device(5, 'Camera F', 'Canon EOS 80D', ['PC-EDSDK', 'RemoteShutter'], Point5(0, 100, -100)),
-        ])
+    def _create_line(self, startX, startY, startZ, endX, endY, endZ, noPoints, num_cams) -> None:
+        xJump = (endX - startX) / (noPoints - 1)
+        yJump = (endY - startY) / (noPoints - 1)
+        zJump = (endZ - startZ) / (noPoints - 1)
+        cam_num = 0
+        cam_range = noPoints // num_cams
+        for i in range(0, noPoints - 1):
+            point5 = [
+                startX + i*xJump,
+                startY + i*yJump,
+                startZ + i*zJump,
+                math.atan2(startZ + i*zJump, startX + i*xJump) + math.pi,
+                math.atan((startY + i*yJump)/math.sqrt((startX + i*xJump)**2+(startZ + i*zJump)**2))]
+            if (i == (cam_range*(cam_num + 1))):
+                cam_num += 1
+            self._actions.append(Action(ActionType.G0, cam_num, 5, point5))
+            self._actions.append(Action(ActionType.C0, cam_num))
+
+    def _create_helix(self, radius, nturn, pturn, num_cams) -> None:
+        """Populates action list with a spherical path to specification
+        """
+        # generate a sphere (for testing)
+        # For each of the nine levels
+            # Get path containing x,y,z and count for num of cams
+        path, count = get_helix(glm.vec3(0, 0, 0), glm.vec3(0, 1, 0), radius, 10, nturn, pturn)
+
+        for j in range(count - 1):
+            # Put x,y,z,pan,tilt for camera in point5
+            point5 = [
+                path[j * 3],
+                path[j * 3 + 1],
+                path[j * 3 + 2],
+                math.atan2(path[j*3+2], path[j*3]) + math.pi,
+                math.atan(path[j*3+1]/math.sqrt(path[j*3]**2+path[j*3+2]**2))]
+
+            # temporary hack to divvy ids
+            rand_device = 0
+            # Where is its x coord?
+            for i in range(1, num_cams):
+                if (path[j * 3] > (-radius + i*((radius*2)/num_cams))):
+                    rand_device += 1
+
+            self._actions.append(Action(ActionType.G0, rand_device, 5, point5))
+            self._actions.append(Action(ActionType.C0, rand_device))
+
+    def add_proxy(self, proxy_type: int, proxy_name: str, position: List, length: int, height: int) -> bool:
+        new = Proxy(proxy_type, proxy_name, position, length, height)
+        self._proxies.append(new)
+        dispatcher.send('core_proxy_list_changed')
+        return True
+
+    def remove_proxy(self, index: int) -> Proxy:
+        """Remove a proxy object given its index in the proxy list"""
+        proxy = self._proxies.pop(index)
+        dispatcher.send('core_proxy_list_changed')
+        return proxy
+
+    def clear_proxy(self) -> None:
+        self._proxies.clear()
+        dispatcher.send('core_proxy_list_changed')
 
     def add_action(self, atype: ActionType, device: int, *args) -> bool:
         """TODO: validate args given atype"""
@@ -399,6 +477,10 @@ class COPISCore:
     @property
     def actions(self) -> List[Action]:
         return self._actions
+    
+    @property
+    def proxies(self) -> List[Proxy]:
+        return self._proxies
 
     @property
     def devices(self) -> List[Device]:
@@ -473,21 +555,9 @@ class COPISCore:
 
         TODO: Expand to include not just G0 and C0 actions
         """
-        with open(filename, 'w') as file:
-            for action in self._actions:
-                file.write('>' + str(action.device))
-
-                if action.atype == ActionType.G0:
-                    file.write(f'G0X{action.args[0]:.3f}'
-                               f'Y{action.args[1]:.3f}'
-                               f'Z{action.args[2]:.3f}'
-                               f'P{action.args[3]:.3f}'
-                               f'T{action.args[4]:.3f}')
-                elif action.atype == ActionType.C0:
-                    file.write(f'C0')
-                else:
-                    pass
-                file.write('\n')
+        with open(filename, 'wb') as file:
+            pickle.dump(self._actions, file)
+        file.close()
         dispatcher.send('core_a_exported', filename=filename)
 
     # --------------------------------------------------------------------------
@@ -511,6 +581,7 @@ class COPISCore:
 
         TODO: update to interface with multiple cameras
         """
+        
         return self.cam_list.get_camera_by_index(0)
 
     def terminate_edsdk(self) -> bool:
