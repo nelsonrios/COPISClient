@@ -41,19 +41,38 @@ class COPISApp(wx.App):
 
     def __init__(self, *args, **kwargs) -> None:
         super(COPISApp, self).__init__(*args, **kwargs)
-        self.c = COPISCore()
         self.appconfig = None
         self.appconfig_exists = False
         self.init_appconfig()
 
-        self.AppName = 'COPIS Interface'
         self.locale = wx.Locale(wx.Locale.GetSystemLanguage())
+        self.chamberdims = [self.appconfig._device_config.getint('Chamber', 'chamberwidth'),
+            self.appconfig._device_config.getint('Chamber', 'chamberdepth'),
+            self.appconfig._device_config.getint('Chamber', 'chamberheight'),
+            self.appconfig._device_config.getint('Chamber', 'centerwidth'),
+            self.appconfig._device_config.getint('Chamber', 'centerdepth'),
+            self.appconfig._device_config.getint('Chamber', 'centerheight')]
+        self.cam_number = self.appconfig._device_config.getint('Camera', 'camnumber')
+        self.cam_x_coords = []
+        self.cam_y_coords = []
+        self.cam_z_coords = []
+        for i in range(1, self.cam_number + 1):
+            self.cam_x_coords.extend([self.appconfig._device_config.getint('Camera'+str(i), 'caminitialx')])
+            self.cam_y_coords.extend([self.appconfig._device_config.getint('Camera'+str(i), 'caminitialy')])
+            self.cam_z_coords.extend([self.appconfig._device_config.getint('Camera'+str(i), 'caminitialz')])
+        self.c = COPISCore(self.cam_number, [self.cam_x_coords,
+            self.cam_y_coords,
+            self.cam_z_coords,
+            ]
+        )
+        self.AppName = 'COPIS Interface'
         self.mainwindow = MainWindow(
+            self.chamberdims,
             None,
             style=wx.DEFAULT_FRAME_STYLE | wx.FULL_REPAINT_ON_RESIZE,
             title='COPIS',
-            size=(self.appconfig.config.getint('General', 'windowwidth'),
-                  self.appconfig.config.getint('General', 'windowheight'))
+            size=(self.appconfig._config.getint('General', 'windowwidth'),
+                  self.appconfig._config.getint('General', 'windowheight'))
         )
         self.mainwindow.Show()
 

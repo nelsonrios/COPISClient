@@ -32,6 +32,7 @@ class AppConfig():
     def __init__(self) -> None:
         """Inits AppConfig."""
         self._config = None
+        self._device_config = None
         self._dirty = False
 
     def set_defaults(self) -> None:
@@ -54,9 +55,12 @@ class AppConfig():
         the ConfigParser we could store the property tree instead
         """
         path = self.config_path()
+        device_path = self.device_config_path()
         try:
             self._config = configparser.ConfigParser()
             self._config.read(path)
+            self._device_config = configparser.ConfigParser()
+            self._device_config.read(device_path)
         except configparser.Error:
             raise IOError(
                 'Error reading COPIS config file.\n'
@@ -114,6 +118,13 @@ class AppConfig():
         # Windows : "C:\Users\username\AppData\Roaming\COPIS" or "C:\Documents and Settings\username\Application Data\COPIS"
         # Mac : "~/Library/Application Support/COPIS"
         return Path('./copis.ini')
+    
+    def device_config_path(self) -> Path:
+        """Return path to device config file.
+
+        TODO: set data directory?
+        """
+        return Path('./device.ini')
 
     def __iter__(self):
         """TODO"""
